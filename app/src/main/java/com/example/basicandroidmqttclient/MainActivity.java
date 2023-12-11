@@ -9,6 +9,7 @@ import android.view.View;
 import android.widget.EditText;
 import android.widget.TextView;
 
+import com.google.gson.Gson;
 import com.hivemq.client.mqtt.datatypes.MqttQos;
 import com.hivemq.client.mqtt.mqtt5.Mqtt5BlockingClient;
 import com.hivemq.client.mqtt.mqtt5.Mqtt5Client;
@@ -18,7 +19,7 @@ import java.util.UUID;
 
 public class MainActivity extends AppCompatActivity {
     public static final String EXTRA_MESSAGE = "com.example.basicandroidmqttclient.MESSAGE";
-    public static final String brokerURI = "3.223.10.115";
+    public static final String brokerURI = "ec2-34-194-22-234.compute-1.amazonaws.com";
 
     Activity thisActivity;
     TextView subMsgTextView;
@@ -71,11 +72,23 @@ public class MainActivity extends AppCompatActivity {
                 .topicFilter(topicName.getText().toString())
                 .qos(MqttQos.AT_LEAST_ONCE)
                 .callback(msg -> {
-                    thisActivity.runOnUiThread(new Runnable() {
-                        public void run() {
-                            subMsgTextView.setText(new String(msg.getPayloadAsBytes(), StandardCharsets.UTF_8));
-                        }
-                    });
+
+                    try {
+                        // Parse JSON string using Gson
+                        Gson gson = new Gson();
+                        SensorData sensorData = gson.fromJson(new String(msg.getPayloadAsBytes(), StandardCharsets.UTF_8), SensorData.class);
+
+                        thisActivity.runOnUiThread(new Runnable() {
+                            public void run() {
+
+                                subMsgTextView.setText(String.format("Temperatura: %s, Luminosidade: %s",sensorData.temperaturaB, sensorData.luminosidadeB));
+                            }
+                        });
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        // Handle parsing exception
+                    }
+
                 })
                 .send();
     }
